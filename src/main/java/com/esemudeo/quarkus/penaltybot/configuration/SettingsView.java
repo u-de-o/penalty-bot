@@ -36,6 +36,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	private static final String COLUMN_FLEX_BASIS = "1 1 400px";
 	private static final String LUMO_DARK_THEME = "dark";
 	private static final String LOGIN_PATH = "/login";
+	private static final String LANDING_PATH = "/";
 	private static final String SWITCH_SERVER_LABEL = "Choose another server";
 	private static final String LOGOUT_LABEL = "Log out";
 
@@ -197,7 +198,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	}
 
 	private void logout() {
-		UI.getCurrent().getPage().setLocation(LOGIN_PATH);
+		UI.getCurrent().getPage().setLocation(LANDING_PATH);
 		authSession.invalidateSession();
 	}
 

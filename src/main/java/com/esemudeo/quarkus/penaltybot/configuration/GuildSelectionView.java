@@ -36,6 +36,7 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 	private static final String CONTENT_MAX_WIDTH = "700px";
 	private static final String GUILD_ICON_SIZE = "48px";
 	private static final String LOGIN_PATH = "/login";
+	private static final String LANDING_PATH = "/";
 	private static final String UNKNOWN_USER_NAME = "there";
 
 	@Inject
@@ -142,7 +143,7 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 	}
 
 	private void logout() {
-		UI.getCurrent().getPage().setLocation(LOGIN_PATH);
+		UI.getCurrent().getPage().setLocation(LANDING_PATH);
 		authSession.invalidateSession();
 	}
 
