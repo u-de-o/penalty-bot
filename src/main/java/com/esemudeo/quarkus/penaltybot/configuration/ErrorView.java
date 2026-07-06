@@ -15,5 +15,6 @@ public class ErrorView extends VerticalLayout {
         add(new H2("Access denied"));
         add(new Paragraph("Your session is invalid or you are not allowed to configure this server."));
         add(new Anchor(LOGIN_PATH, "Sign in again"));
+        add(new ThemeToggle());
     }
 }

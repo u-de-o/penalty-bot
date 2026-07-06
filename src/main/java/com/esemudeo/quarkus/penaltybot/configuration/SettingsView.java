@@ -34,17 +34,10 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 
 	private static final String CONTENT_MAX_WIDTH = "1200px";
 	private static final String COLUMN_FLEX_BASIS = "1 1 400px";
-	private static final String LUMO_DARK_THEME = "dark";
 	private static final String LOGIN_PATH = "/login";
 	private static final String LANDING_PATH = "/";
 	private static final String SWITCH_SERVER_LABEL = "Choose another server";
 	private static final String LOGOUT_LABEL = "Log out";
-
-	// Checks if the browser's system color scheme preference is set to dark
-	private static final String JS_PREFERS_DARK_MODE = "return window.matchMedia('(prefers-color-scheme:dark)').matches";
-
-	private static final String DARK_MODE_LABEL = "To the dark room";
-	private static final String LIGHT_MODE_LABEL = "Back to the light";
 
 	@Inject
 	AuthSession authSession;
@@ -55,7 +48,6 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	private CommandPermissionsCard commandPermissionsCard;
 	private PenaltyTypesCard penaltyTypesCard;
 	private GlobalSettingsCard globalSettingsCard;
-	private Button darkModeToggle;
 
 	private boolean initialized;
 	private String sessionNonce;
@@ -162,16 +154,13 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 				.set("font-size", "var(--lumo-font-size-m)")
 				.set("color", "var(--lumo-secondary-text-color)");
 
-		darkModeToggle = new Button(DARK_MODE_LABEL, new Icon(VaadinIcon.MOON));
-		darkModeToggle.addClickListener(e -> toggleDarkMode());
-
 		var switchServerButton = new Button(SWITCH_SERVER_LABEL, new Icon(VaadinIcon.EXCHANGE));
 		switchServerButton.addClickListener(e -> UI.getCurrent().navigate(GuildSelectionView.class));
 
 		var logoutButton = new Button(LOGOUT_LABEL, new Icon(VaadinIcon.SIGN_OUT));
 		logoutButton.addClickListener(e -> logout());
 
-		var actions = new Div(switchServerButton, darkModeToggle, logoutButton);
+		var actions = new Div(switchServerButton, new ThemeToggle(), logoutButton);
 		actions.getStyle()
 				.set("display", "flex")
 				.set("gap", "var(--lumo-space-s)")
@@ -202,36 +191,10 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		authSession.invalidateSession();
 	}
 
-	private void toggleDarkMode() {
-		var themeList = UI.getCurrent().getElement().getThemeList();
-		boolean switchToDark = !themeList.contains(LUMO_DARK_THEME);
-		if (switchToDark) {
-			themeList.add(LUMO_DARK_THEME);
-		} else {
-			themeList.remove(LUMO_DARK_THEME);
-		}
-		updateDarkModeButton(switchToDark);
-	}
-
-	private void updateDarkModeButton(boolean isDark) {
-		darkModeToggle.setText(isDark ? LIGHT_MODE_LABEL : DARK_MODE_LABEL);
-		darkModeToggle.setIcon(new Icon(isDark ? VaadinIcon.SUN_O : VaadinIcon.MOON));
-	}
-
-	private void syncDarkModeWithSystemPreference() {
-		UI.getCurrent().getPage().executeJs(JS_PREFERS_DARK_MODE).then(Boolean.class, isDark -> {
-			if (isDark) {
-				UI.getCurrent().getElement().getThemeList().add(LUMO_DARK_THEME);
-				updateDarkModeButton(true);
-			}
-		});
-	}
-
 	private void applyInitialState() {
 		commandPermissionsCard.applyInitialState();
 		penaltyTypesCard.applyInitialState();
 		globalSettingsCard.applyInitialState();
-		syncDarkModeWithSystemPreference();
 	}
 
 }

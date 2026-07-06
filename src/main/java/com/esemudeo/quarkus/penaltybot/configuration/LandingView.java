@@ -52,5 +52,7 @@ public class LandingView extends VerticalLayout implements BeforeEnterObserver {
 		var loginButton = new Button("Log in with Discord");
 		loginButton.addClickListener(e -> UI.getCurrent().getPage().setLocation(LOGIN_PATH));
 		add(loginButton);
+
+		add(new ThemeToggle());
 	}
 }

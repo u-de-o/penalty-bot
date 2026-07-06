@@ -133,7 +133,13 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 		var logoutButton = new Button("Log out", new Icon(VaadinIcon.SIGN_OUT));
 		logoutButton.addClickListener(e -> logout());
 
-		var topBar = new Div(greeting, logoutButton);
+		var actions = new Div(new ThemeToggle(), logoutButton);
+		actions.getStyle()
+				.set("display", "flex")
+				.set("gap", "var(--lumo-space-s)")
+				.set("align-items", "center");
+
+		var topBar = new Div(greeting, actions);
 		topBar.getStyle()
 				.set("display", "flex")
 				.set("justify-content", "space-between")
