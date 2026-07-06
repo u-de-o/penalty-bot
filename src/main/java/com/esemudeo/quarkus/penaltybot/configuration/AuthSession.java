@@ -19,6 +19,7 @@ import java.util.UUID;
 public class AuthSession {
 
     private static final String KEY_USER_ID = "auth.userId";
+    private static final String KEY_USER_NAME = "auth.userName";
     private static final String KEY_GUILD_ID = "auth.guildId";
     private static final String KEY_ACTIVE_NONCE = "auth.activeNonce";
 
@@ -32,6 +33,19 @@ public class AuthSession {
 
     public Long getUserId() {
         return (Long) VaadinSession.getCurrent().getAttribute(KEY_USER_ID);
+    }
+
+    public String getUserName() {
+        return (String) VaadinSession.getCurrent().getAttribute(KEY_USER_NAME);
+    }
+
+    public void setUserName(String userName) {
+        VaadinSession.getCurrent().setAttribute(KEY_USER_NAME, userName);
+    }
+
+    /** Clears the authenticated identity by invalidating the underlying HTTP session. */
+    public void invalidateSession() {
+        VaadinSession.getCurrent().getSession().invalidate();
     }
 
     public Long getGuildId() {

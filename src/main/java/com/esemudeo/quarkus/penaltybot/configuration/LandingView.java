@@ -1,5 +1,10 @@
 package com.esemudeo.quarkus.penaltybot.configuration;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -8,7 +13,7 @@ import jakarta.inject.Inject;
 
 /**
  * Root entry point. Authenticated users go straight to the guild selection; everyone
- * else is sent to the OAuth login, so visiting the site immediately starts sign-in.
+ * else sees a login button that starts the Discord OAuth flow.
  */
 @Route("")
 public class LandingView extends VerticalLayout implements BeforeEnterObserver {
@@ -24,6 +29,28 @@ public class LandingView extends VerticalLayout implements BeforeEnterObserver {
 			event.forwardTo(GuildSelectionView.class);
 			return;
 		}
-		event.getUI().getPage().setLocation(LOGIN_PATH);
+		buildLogin();
+	}
+
+	private void buildLogin() {
+		removeAll();
+		setSizeFull();
+		setAlignItems(FlexComponent.Alignment.CENTER);
+		setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+
+		add(new H2("Penalty Bot"));
+
+		var intro = new Paragraph("Penalty Bot tracks penalties for your Discord server. "
+				+ "Sign in with Discord to manage penalty types, command permissions and payment "
+				+ "settings for the servers where you have the required role.");
+		intro.getStyle()
+				.set("max-width", "480px")
+				.set("text-align", "center")
+				.set("color", "var(--lumo-secondary-text-color)");
+		add(intro);
+
+		var loginButton = new Button("Log in with Discord");
+		loginButton.addClickListener(e -> UI.getCurrent().getPage().setLocation(LOGIN_PATH));
+		add(loginButton);
 	}
 }

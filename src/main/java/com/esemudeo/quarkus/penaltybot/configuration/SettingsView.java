@@ -37,6 +37,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	private static final String LUMO_DARK_THEME = "dark";
 	private static final String LOGIN_PATH = "/login";
 	private static final String SWITCH_SERVER_LABEL = "Choose another server";
+	private static final String LOGOUT_LABEL = "Log out";
 
 	// Checks if the browser's system color scheme preference is set to dark
 	private static final String JS_PREFERS_DARK_MODE = "return window.matchMedia('(prefers-color-scheme:dark)').matches";
@@ -166,7 +167,10 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		var switchServerButton = new Button(SWITCH_SERVER_LABEL, new Icon(VaadinIcon.EXCHANGE));
 		switchServerButton.addClickListener(e -> UI.getCurrent().navigate(GuildSelectionView.class));
 
-		var actions = new Div(switchServerButton, darkModeToggle);
+		var logoutButton = new Button(LOGOUT_LABEL, new Icon(VaadinIcon.SIGN_OUT));
+		logoutButton.addClickListener(e -> logout());
+
+		var actions = new Div(switchServerButton, darkModeToggle, logoutButton);
 		actions.getStyle()
 				.set("display", "flex")
 				.set("gap", "var(--lumo-space-s)")
@@ -182,7 +186,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		var titleBlock = new Div(heading, guildName);
 		topRow.add(titleBlock, actions);
 
-		var welcome = new Paragraph("Welcome, %s!".formatted(settingsService.getMemberDisplayName()));
+		var welcome = new Paragraph("Hello, %s!".formatted(authSession.getUserName()));
 		welcome.getStyle()
 				.set("margin", "var(--lumo-space-xs) 0 0 0")
 				.set("color", "var(--lumo-secondary-text-color)")
@@ -190,6 +194,11 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 
 		header.add(topRow, welcome);
 		return header;
+	}
+
+	private void logout() {
+		UI.getCurrent().getPage().setLocation(LOGIN_PATH);
+		authSession.invalidateSession();
 	}
 
 	private void toggleDarkMode() {

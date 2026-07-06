@@ -71,14 +71,6 @@ public class SettingsService {
         return guild.getName();
     }
 
-    public String getMemberDisplayName() {
-        Guild guild = jdaInstance.getJda().getGuildById(guildId());
-        if (guild == null) {
-            throw new IllegalStateException("Guild not found");
-        }
-        return guild.retrieveMemberById(authSession.getUserId()).complete().getEffectiveName();
-    }
-
     // --- Guild roles ---
 
     public record GuildRole(long id, String name, String hexColor) {}

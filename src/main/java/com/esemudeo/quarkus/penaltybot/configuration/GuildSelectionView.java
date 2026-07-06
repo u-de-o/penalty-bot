@@ -3,12 +3,16 @@ package com.esemudeo.quarkus.penaltybot.configuration;
 import com.esemudeo.quarkus.penaltybot.configuration.GuildAccessService.AccessibleGuild;
 import com.esemudeo.quarkus.penaltybot.configuration.auth.model.AuthFlowToken;
 import com.esemudeo.quarkus.penaltybot.configuration.auth.repository.AuthFlowTokenRepository;
+import com.esemudeo.quarkus.penaltybot.shared.JDAInstance;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -32,6 +36,7 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 	private static final String CONTENT_MAX_WIDTH = "700px";
 	private static final String GUILD_ICON_SIZE = "48px";
 	private static final String LOGIN_PATH = "/login";
+	private static final String UNKNOWN_USER_NAME = "there";
 
 	@Inject
 	AuthSession authSession;
@@ -41,6 +46,9 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 
 	@Inject
 	GuildAccessService guildAccessService;
+
+	@Inject
+	JDAInstance jdaInstance;
 
 	@Override
 	public void beforeEnter(BeforeEnterEvent event) {
@@ -75,10 +83,21 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 		if (tokenOpt.isEmpty() || tokenOpt.get().getUserId() == null) {
 			return false;
 		}
+		long userId = tokenOpt.get().getUserId();
 		authFlowTokenRepository.markAsUsed(token);
-		authSession.setUserId(tokenOpt.get().getUserId());
+		authSession.setUserId(userId);
+		authSession.setUserName(resolveUserName(userId));
 		authSession.rotateNonce();
 		return true;
+	}
+
+	private String resolveUserName(long userId) {
+		try {
+			return jdaInstance.getJda().retrieveUserById(userId).complete().getEffectiveName();
+		} catch (Exception e) {
+			log.debug("Could not resolve Discord user name for {}: {}", userId, e.getMessage());
+			return UNKNOWN_USER_NAME;
+		}
 	}
 
 	private void render() {
@@ -93,6 +112,7 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 				.set("padding", "var(--lumo-space-m)")
 				.set("box-sizing", "border-box");
 
+		content.add(buildTopBar());
 		content.add(new H2("Choose a server"));
 
 		List<AccessibleGuild> guilds = guildAccessService.accessibleGuilds(authSession.getUserId());
@@ -103,6 +123,27 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 		}
 
 		add(content);
+	}
+
+	private Div buildTopBar() {
+		var greeting = new Span("Hello, %s!".formatted(authSession.getUserName()));
+		greeting.getStyle().set("color", "var(--lumo-secondary-text-color)");
+
+		var logoutButton = new Button("Log out", new Icon(VaadinIcon.SIGN_OUT));
+		logoutButton.addClickListener(e -> logout());
+
+		var topBar = new Div(greeting, logoutButton);
+		topBar.getStyle()
+				.set("display", "flex")
+				.set("justify-content", "space-between")
+				.set("align-items", "center")
+				.set("margin-bottom", "var(--lumo-space-m)");
+		return topBar;
+	}
+
+	private void logout() {
+		UI.getCurrent().getPage().setLocation(LOGIN_PATH);
+		authSession.invalidateSession();
 	}
 
 	private Paragraph emptyState() {
