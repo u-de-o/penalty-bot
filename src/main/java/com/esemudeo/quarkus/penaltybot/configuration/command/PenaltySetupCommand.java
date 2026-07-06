@@ -1,32 +1,18 @@
 package com.esemudeo.quarkus.penaltybot.configuration.command;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import com.esemudeo.quarkus.penaltybot.shared.command.SlashCommand;
-import com.esemudeo.quarkus.penaltybot.permission.RequiresCommandPermission;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.model.ConfigSessionToken;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.repository.ConfigSessionTokenRepository;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logging.Logger;
 
-import java.security.SecureRandom;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.HexFormat;
-
-@RequiresCommandPermission
+/**
+ * Points users at the configuration website. The site handles Discord login and shows
+ * the servers a user may configure, so no per-user link/token needs to be generated.
+ * The command stays a {@link SlashCommand} so its name keeps seeding the
+ * {@code penalty-setup} permission that gates web access to a guild's settings.
+ */
 @ApplicationScoped
 public class PenaltySetupCommand implements SlashCommand {
-
-	private static final Logger LOG = Logger.getLogger(PenaltySetupCommand.class);
-
-	private static final int TOKEN_VALIDITY_MINUTES = 5;
-	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-
-	@Inject
-	ConfigSessionTokenRepository configSessionTokenRepository;
 
 	@ConfigProperty(name = "app.base-url")
 	String baseUrl;
@@ -43,33 +29,8 @@ public class PenaltySetupCommand implements SlashCommand {
 
 	@Override
 	public void handleSlashCommand(SlashCommandInteractionEvent event) {
-		executeInGuild(event, guild -> generateConfigLink(guild, event),
-				e -> LOG.error("Error handling penalty-setup command", e));
-	}
-
-	private void generateConfigLink(Guild guild, SlashCommandInteractionEvent event) {
-		long userId = event.getUser().getIdLong();
-
-		configSessionTokenRepository.invalidateAllForUser(userId);
-
-		String token = generateToken();
-		configSessionTokenRepository.save(ConfigSessionToken.builder()
-				.userId(userId)
-				.guildId(guild.getIdLong())
-				.token(token)
-				.expiresAt(Instant.now().plus(TOKEN_VALIDITY_MINUTES, ChronoUnit.MINUTES))
-				.used(false)
-				.build());
-
-		String configUrl = baseUrl + "/configure?token=" + token;
-		event.reply("Here is your configuration link (valid for %d minutes): <%s>".formatted(TOKEN_VALIDITY_MINUTES, configUrl))
+		event.reply("Configure Penalty Bot here: %s".formatted(baseUrl))
 				.setEphemeral(true)
 				.queue();
-	}
-
-	private static String generateToken() {
-		byte[] bytes = new byte[32];
-		SECURE_RANDOM.nextBytes(bytes);
-		return HexFormat.of().formatHex(bytes);
 	}
 }

@@ -12,8 +12,6 @@ import com.esemudeo.quarkus.penaltybot.configuration.global.model.GlobalGuildCon
 import com.esemudeo.quarkus.penaltybot.configuration.global.repository.GlobalGuildConfigRepository;
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.model.PenaltyType;
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.repository.PenaltyTypeRepository;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.model.ConfigSessionToken;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.repository.ConfigSessionTokenRepository;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -49,19 +47,20 @@ public class SettingsService {
     JDAInstance jdaInstance;
 
     @Inject
-    ConfigSessionTokenRepository configSessionTokenRepository;
+    GuildAccessService guildAccessService;
 
     // --- Authentication ---
 
-    public String authenticateWithToken(String token) {
-        ConfigSessionToken sessionToken = configSessionTokenRepository.findValidByToken(token).orElse(null);
-        if (sessionToken == null) {
-            return null;
+    /**
+     * Re-verifies that the authenticated user still passes the access gate for the
+     * guild currently held in the session. Called on every settings entry so that a
+     * tampered session guildId or a revoked role is rejected live.
+     */
+    public void assertCanAccessCurrentGuild() {
+        long guildId = guildId();
+        if (!guildAccessService.canAccess(authSession.getUserId(), guildId)) {
+            throw new SettingsAccessDeniedException("Not allowed to configure this guild");
         }
-        configSessionTokenRepository.markAsUsed(sessionToken.getToken());
-        authSession.setUserId(sessionToken.getUserId());
-        authSession.setGuildId(sessionToken.getGuildId());
-        return authSession.rotateNonce();
     }
 
     public String getGuildName() {

@@ -27,7 +27,6 @@ import com.vaadin.flow.router.Route;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 @Slf4j
 @Route("settings")
 @PreserveOnRefresh
@@ -36,6 +35,8 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	private static final String CONTENT_MAX_WIDTH = "1200px";
 	private static final String COLUMN_FLEX_BASIS = "1 1 400px";
 	private static final String LUMO_DARK_THEME = "dark";
+	private static final String LOGIN_PATH = "/login";
+	private static final String SWITCH_SERVER_LABEL = "Choose another server";
 
 	// Checks if the browser's system color scheme preference is set to dark
 	private static final String JS_PREFERS_DARK_MODE = "return window.matchMedia('(prefers-color-scheme:dark)').matches";
@@ -61,18 +62,18 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 	public void beforeEnter(BeforeEnterEvent event) {
 		if (sessionNonce != null && authSession.isActiveNonce(sessionNonce)) {
 			settingsService.setUiNonce(sessionNonce);
-		} else if (hasToken(event)) {
-			if (!tryAuthenticateFromToken(event)) {
-				return;
-			}
-			initialized = false;
-		} else {
-			log.warn("Settings access denied: no valid session nonce and no token");
-			event.forwardTo(ErrorView.class);
+		} else if (authSession.isNotAuthenticated()) {
+			event.getUI().getPage().setLocation(LOGIN_PATH);
 			return;
+		} else {
+			// Arrived from the guild selection: adopt the current active nonce for this UI.
+			sessionNonce = authSession.getActiveNonce();
+			settingsService.setUiNonce(sessionNonce);
+			initialized = false;
 		}
 
 		try {
+			settingsService.assertCanAccessCurrentGuild();
 			if (!initialized) {
 				buildSections();
 				initialized = true;
@@ -162,6 +163,15 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		darkModeToggle = new Button(DARK_MODE_LABEL, new Icon(VaadinIcon.MOON));
 		darkModeToggle.addClickListener(e -> toggleDarkMode());
 
+		var switchServerButton = new Button(SWITCH_SERVER_LABEL, new Icon(VaadinIcon.EXCHANGE));
+		switchServerButton.addClickListener(e -> UI.getCurrent().navigate(GuildSelectionView.class));
+
+		var actions = new Div(switchServerButton, darkModeToggle);
+		actions.getStyle()
+				.set("display", "flex")
+				.set("gap", "var(--lumo-space-s)")
+				.set("align-items", "center");
+
 		var topRow = new Div();
 		topRow.getStyle()
 				.set("display", "flex")
@@ -170,7 +180,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 				.set("padding-right", "var(--lumo-space-m)");
 
 		var titleBlock = new Div(heading, guildName);
-		topRow.add(titleBlock, darkModeToggle);
+		topRow.add(titleBlock, actions);
 
 		var welcome = new Paragraph("Welcome, %s!".formatted(settingsService.getMemberDisplayName()));
 		welcome.getStyle()
@@ -214,26 +224,4 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		syncDarkModeWithSystemPreference();
 	}
 
-	private boolean hasToken(BeforeEnterEvent event) {
-		List<String> tokens = event.getLocation().getQueryParameters().getParameters().get("token");
-		return tokens != null && !tokens.isEmpty();
-	}
-
-	private boolean tryAuthenticateFromToken(BeforeEnterEvent event) {
-		List<String> tokens = event.getLocation().getQueryParameters().getParameters().get("token");
-		if (tokens == null || tokens.isEmpty()) {
-			log.warn("Settings access denied: no token in URL");
-			event.forwardTo(ErrorView.class);
-			return false;
-		}
-		String nonce = settingsService.authenticateWithToken(tokens.getFirst());
-		if (nonce == null) {
-			log.warn("Settings access denied: invalid or expired token");
-			event.forwardTo(ErrorView.class);
-			return false;
-		}
-		sessionNonce = nonce;
-		settingsService.setUiNonce(nonce);
-		return true;
-	}
 }

@@ -6,8 +6,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Response;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.model.ConfigSessionToken;
-import com.esemudeo.quarkus.penaltybot.configuration.auth.repository.ConfigSessionTokenRepository;
+import com.esemudeo.quarkus.penaltybot.configuration.auth.model.AuthFlowToken;
+import com.esemudeo.quarkus.penaltybot.configuration.auth.repository.AuthFlowTokenRepository;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
@@ -21,11 +21,13 @@ import java.util.UUID;
 @Path("/oauth/callback")
 public class OAuthCallbackResource {
 
+    private static final int HANDOFF_VALIDITY_MINUTES = 2;
+
     @Inject
     Logger log;
 
     @Inject
-    ConfigSessionTokenRepository configSessionTokenRepository;
+    AuthFlowTokenRepository authFlowTokenRepository;
 
     @RestClient
     DiscordOAuthClient discordOAuthClient;
@@ -47,15 +49,13 @@ public class OAuthCallbackResource {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
 
-        // state is the config session token we generated and passed to Discord.
-        // Discord echoes it back unchanged as a CSRF protection mechanism.
-        Optional<ConfigSessionToken> tokenOpt = configSessionTokenRepository.findValidByToken(state);
-        if (tokenOpt.isEmpty()) {
-            log.warn("OAuth callback: no valid session token found for state=%s".formatted(state));
+        // state is the CSRF token we generated at /login. Discord echoes it back unchanged.
+        Optional<AuthFlowToken> stateOpt = authFlowTokenRepository.findValidByToken(state);
+        if (stateOpt.isEmpty()) {
+            log.warn("OAuth callback: no valid state token found");
             return Response.seeOther(URI.create("/error")).build();
         }
-
-        ConfigSessionToken sessionToken = tokenOpt.get();
+        authFlowTokenRepository.markAsUsed(state);
 
         DiscordTokenResponse tokenResponse;
         try {
@@ -81,24 +81,16 @@ public class OAuthCallbackResource {
             return Response.seeOther(URI.create("/error")).build();
         }
 
-        if (discordUserId != sessionToken.getUserId()) {
-            log.warn("OAuth callback: user mismatch – expected %d, got %d".formatted(sessionToken.getUserId(), discordUserId));
-            return Response.seeOther(URI.create("/error")).build();
-        }
-
-        sessionToken.setUsed(true);
-
-        // Create a short-lived settings-access token. The SettingsView validates it,
-        // writes userId + guildId into the VaadinSession, then discards the token.
-        String settingsToken = UUID.randomUUID().toString();
-        configSessionTokenRepository.save(ConfigSessionToken.builder()
-				.guildId(sessionToken.getGuildId())
-				.userId(discordUserId)
-                .token(settingsToken)
-                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+        // Create a short-lived handoff token carrying the authenticated user. The
+        // guild-selection view validates it and writes the userId into the VaadinSession.
+        String handoffToken = UUID.randomUUID().toString();
+        authFlowTokenRepository.save(AuthFlowToken.builder()
+                .userId(discordUserId)
+                .token(handoffToken)
+                .expiresAt(Instant.now().plus(HANDOFF_VALIDITY_MINUTES, ChronoUnit.MINUTES))
                 .used(false)
                 .build());
 
-        return Response.seeOther(URI.create("/settings?token=" + settingsToken)).build();
+        return Response.seeOther(URI.create("/guilds?token=" + handoffToken)).build();
     }
 }
