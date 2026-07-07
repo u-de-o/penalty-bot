@@ -24,9 +24,7 @@ public abstract class GuildSessionView extends VerticalLayout implements BeforeE
 
 	protected static final String LOGIN_PATH = "/login";
 	protected static final String LANDING_PATH = "/";
-	private static final String LOGOUT_LABEL = "Log out";
-	private static final String BACK_TO_SELECTION_LABEL = "Server selection";
-	private static final String HOME_LABEL = "Home";
+	private static final String ROUND_BUTTON_SIZE = "40px";
 
 	@Inject
 	protected AuthSession authSession;
@@ -75,40 +73,80 @@ public abstract class GuildSessionView extends VerticalLayout implements BeforeE
 		UI.getCurrent().getPage().setTitle(title);
 	}
 
-	/** Header bar with the page title, greeting, navigation, theme toggle and logout. */
+	/**
+	 * Header with one row of action buttons (Home + Server selection, labeled, on the
+	 * left; Dark mode + Log out, round icon-only, on the right), the page title centered
+	 * below it, and the greeting centered below the title.
+	 */
 	protected Div buildHeader(String title) {
-		var heading = new H2(title);
-		heading.getStyle().set("margin", "0").set("font-size", "var(--lumo-font-size-xl)");
+		var homeButton = pillButton(VaadinIcon.HOME, "Home", () -> UI.getCurrent().navigate(GuildHomeView.class));
+		var backButton = pillButton(VaadinIcon.ARROW_BACKWARD, "Server selection",
+				() -> UI.getCurrent().navigate(GuildSelectionView.class));
 
-		var greeting = new Span("Hello, %s!".formatted(authSession.getUserName()));
-		greeting.getStyle()
-				.set("color", "var(--lumo-secondary-text-color)")
-				.set("font-size", "var(--lumo-font-size-s)");
+		var themeToggle = new ThemeToggle(true);
+		styleAsRoundButton(themeToggle);
 
-		var titleBlock = new Div(heading, greeting);
+		var logoutButton = roundIconButton(VaadinIcon.SIGN_OUT, "Log out", this::logout);
 
-		var homeButton = new Button(HOME_LABEL, new Icon(VaadinIcon.HOME));
-		homeButton.addClickListener(e -> UI.getCurrent().navigate(GuildHomeView.class));
+		var leftGroup = new Div(homeButton, backButton);
+		leftGroup.getStyle().set("display", "flex").set("gap", "var(--lumo-space-s)");
 
-		var backButton = new Button(BACK_TO_SELECTION_LABEL, new Icon(VaadinIcon.ARROW_BACKWARD));
-		backButton.addClickListener(e -> UI.getCurrent().navigate(GuildSelectionView.class));
+		var rightGroup = new Div(themeToggle, logoutButton);
+		rightGroup.getStyle().set("display", "flex").set("gap", "var(--lumo-space-s)");
 
-		var logoutButton = new Button(LOGOUT_LABEL, new Icon(VaadinIcon.SIGN_OUT));
-		logoutButton.addClickListener(e -> logout());
-
-		var actions = new Div(homeButton, backButton, new ThemeToggle(), logoutButton);
-		actions.getStyle()
-				.set("display", "flex")
-				.set("gap", "var(--lumo-space-s)")
-				.set("align-items", "center");
-
-		var header = new Div(titleBlock, actions);
-		header.getStyle()
+		var buttonRow = new Div(leftGroup, rightGroup);
+		buttonRow.getStyle()
 				.set("display", "flex")
 				.set("justify-content", "space-between")
 				.set("align-items", "center")
+				.set("width", "100%");
+
+		var heading = new H2(title);
+		heading.getStyle()
+				.set("margin", "var(--lumo-space-m) 0 0 0")
+				.set("font-size", "var(--lumo-font-size-xl)")
+				.set("text-align", "center");
+
+		var greeting = new Span("Hello, %s!".formatted(authSession.getUserName()));
+		greeting.getStyle()
+				.set("margin-top", "var(--lumo-space-xs)")
+				.set("color", "var(--lumo-secondary-text-color)")
+				.set("font-size", "var(--lumo-font-size-s)")
+				.set("text-align", "center");
+
+		var header = new Div(buttonRow, heading, greeting);
+		header.getStyle()
+				.set("display", "flex")
+				.set("flex-direction", "column")
+				.set("align-items", "center")
+				.set("width", "100%")
 				.set("margin-bottom", "var(--lumo-space-m)");
 		return header;
+	}
+
+	private Button roundIconButton(VaadinIcon vaadinIcon, String tooltip, Runnable onClick) {
+		var button = new Button(new Icon(vaadinIcon));
+		button.getElement().setAttribute("title", tooltip);
+		styleAsRoundButton(button);
+		button.addClickListener(e -> onClick.run());
+		return button;
+	}
+
+	/** A wide, pill-shaped button with both an icon and a visible text label. */
+	private Button pillButton(VaadinIcon vaadinIcon, String label, Runnable onClick) {
+		var button = new Button(label, new Icon(vaadinIcon));
+		button.getStyle().set("border-radius", "999px");
+		button.addClickListener(e -> onClick.run());
+		return button;
+	}
+
+	private void styleAsRoundButton(Button button) {
+		button.getStyle()
+				.set("border-radius", "50%")
+				.set("width", ROUND_BUTTON_SIZE)
+				.set("height", ROUND_BUTTON_SIZE)
+				.set("min-width", ROUND_BUTTON_SIZE)
+				.set("padding", "0");
 	}
 
 	protected void logout() {

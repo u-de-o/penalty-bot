@@ -28,9 +28,19 @@ public class ThemeToggle extends Button {
 
 	private static final String JS_STORE_THEME = "localStorage.setItem($0, $1)";
 
+	private final boolean iconOnly;
 	private boolean dark;
 
 	public ThemeToggle() {
+		this(false);
+	}
+
+	/** When {@code iconOnly} is true, no text label is shown (only the icon and a native tooltip). */
+	public ThemeToggle(boolean iconOnly) {
+		this.iconOnly = iconOnly;
+		if (iconOnly) {
+			getElement().setAttribute("title", "Toggle dark mode");
+		}
 		addClickListener(e -> toggle());
 	}
 
@@ -53,7 +63,9 @@ public class ThemeToggle extends Button {
 		} else {
 			themeList.remove(DARK_THEME);
 		}
-		setText(useDark ? LIGHT_MODE_LABEL : DARK_MODE_LABEL);
+		if (!iconOnly) {
+			setText(useDark ? LIGHT_MODE_LABEL : DARK_MODE_LABEL);
+		}
 		setIcon(new Icon(useDark ? VaadinIcon.SUN_O : VaadinIcon.MOON));
 	}
 }
