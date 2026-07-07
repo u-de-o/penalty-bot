@@ -2,6 +2,7 @@ package com.esemudeo.quarkus.penaltybot.penalty.repository;
 
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.model.PenaltyType;
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.repository.PenaltyTypeRepository;
+import com.esemudeo.quarkus.penaltybot.penalty.DateRange;
 import com.esemudeo.quarkus.penaltybot.penalty.model.Penalty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -46,11 +47,14 @@ public class PenaltyRepository {
 	}
 
 	public Map<Long, List<PenaltyTypeSummary>> aggregateByMonthForAllUsers(long guildId, YearMonth yearMonth) {
-		Instant startOfMonthInclusive = yearMonth.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-		Instant endOfMonthExclusive = yearMonth.plusMonths(1).atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-		List<Penalty> allPenaltiesOfMonth =
-				Penalty.list("guildId = ?1 and timestamp >= ?2 and timestamp < ?3", guildId, startOfMonthInclusive, endOfMonthExclusive);
-		return allPenaltiesOfMonth
+		DateRange range = DateRange.ofMonth(yearMonth);
+		return aggregateByRangeForAllUsers(guildId, range.startInclusive(), range.endExclusive());
+	}
+
+	public Map<Long, List<PenaltyTypeSummary>> aggregateByRangeForAllUsers(long guildId, Instant startInclusive, Instant endExclusive) {
+		List<Penalty> penaltiesInRange =
+				Penalty.list("guildId = ?1 and timestamp >= ?2 and timestamp < ?3", guildId, startInclusive, endExclusive);
+		return penaltiesInRange
 				.stream()
 				.collect(Collectors.groupingBy(
 						Penalty::getAffectedMemberId,
@@ -69,6 +73,15 @@ public class PenaltyRepository {
 	public List<YearMonth> findAvailableMonthsForGuild(long guildId, int limit) {
 		Instant xMonthsAgo = LocalDateTime.now(ZoneOffset.UTC).minusMonths(limit).toInstant(ZoneOffset.UTC);
 		return Penalty.<Penalty>find("guildId = ?1 and timestamp >= ?2 ORDER BY timestamp DESC", guildId, xMonthsAgo)
+				.stream()
+				.map(p -> YearMonth.from(p.getTimestamp().atZone(ZoneOffset.UTC)))
+				.distinct()
+				.toList();
+	}
+
+	/** All distinct months (newest first) that have at least one penalty – used by the web overview pager. */
+	public List<YearMonth> findAvailableMonthsForGuild(long guildId) {
+		return Penalty.<Penalty>find("guildId = ?1 ORDER BY timestamp DESC", guildId)
 				.stream()
 				.map(p -> YearMonth.from(p.getTimestamp().atZone(ZoneOffset.UTC)))
 				.distinct()
