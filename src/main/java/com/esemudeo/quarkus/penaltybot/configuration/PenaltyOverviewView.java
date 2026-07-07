@@ -122,7 +122,7 @@ public class PenaltyOverviewView extends GuildSessionView {
 
 		monthLabel.getStyle().set("font-weight", "bold").set("min-width", "160px").set("text-align", "center");
 
-		var pager = new Div(newerButton, monthLabel, olderButton);
+		var pager = new Div(olderButton, monthLabel, newerButton);
 		pager.getStyle()
 				.set("display", "flex")
 				.set("align-items", "center")
