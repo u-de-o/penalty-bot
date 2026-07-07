@@ -12,6 +12,7 @@ import jakarta.inject.Inject;
 import net.dv8tion.jda.api.entities.Guild;
 import org.jboss.logging.Logger;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +50,8 @@ public class PenaltyOverviewService {
 
     public record OverviewTable(List<String> typeColumns, List<MemberRow> rows, Optional<String> paypalUsername) {}
 
+    public record MemberPenaltyEntry(Instant timestamp, String penaltyTypeName, int amount, String authorName) {}
+
     public OverviewTable overview(long guildId, DateRange range) {
         Map<Long, List<PenaltyTypeSummary>> summaryByMember =
                 penaltyRepository.aggregateByRangeForAllUsers(guildId, range.startInclusive(), range.endExclusive());
@@ -62,6 +65,15 @@ public class PenaltyOverviewService {
                 .map(GlobalGuildConfig::getPaypalMeUsername);
 
         return new OverviewTable(typeColumns, rows, paypalUsername);
+    }
+
+    /** Individual entries for one member within a range, newest first (matches repository order). */
+    public List<MemberPenaltyEntry> memberEntries(long guildId, long memberId, DateRange range) {
+        return penaltyRepository.findByGuildMemberAndRange(guildId, memberId, range.startInclusive(), range.endExclusive())
+                .stream()
+                .map(p -> new MemberPenaltyEntry(p.getTimestamp(), p.getPenaltyType().getDisplayName(), p.getAmount(),
+                        resolveMemberName(guildId, p.getAuthorId())))
+                .toList();
     }
 
     private List<String> typeColumns(long guildId) {

@@ -88,6 +88,14 @@ public class PenaltyRepository {
 				.toList();
 	}
 
+	/** Individual entries for one member within a range, newest first – used by the web member detail page. */
+	public List<Penalty> findByGuildMemberAndRange(long guildId, long memberId, Instant startInclusive, Instant endExclusive) {
+		return Penalty.<Penalty>find(
+				"guildId = ?1 and affectedMemberId = ?2 and timestamp >= ?3 and timestamp < ?4 ORDER BY timestamp DESC",
+				guildId, memberId, startInclusive, endExclusive)
+				.list();
+	}
+
 	record PenaltyAmountByType(String displayName, int amount) {}
 
 	public record PenaltyTypeSummary(String displayName, int totalAmount, Integer totalPriceCents) {}
