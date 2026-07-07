@@ -38,6 +38,9 @@ public class PenaltyMemberDetailView extends GuildSessionView {
 	@Inject
 	PenaltyOverviewService penaltyOverviewService;
 
+	@Inject
+	PenaltyOverviewCache penaltyOverviewCache;
+
 	private Long memberId;
 	private String memberName;
 	private YearMonth month;
@@ -83,16 +86,31 @@ public class PenaltyMemberDetailView extends GuildSessionView {
 				.set("margin", "0 auto");
 
 		content.add(buildHeader(title));
-		content.add(buildBackButton());
+		content.add(buildToolbar());
 		content.add(buildGrid());
 
 		add(content);
 	}
 
-	private Button buildBackButton() {
-		var button = new Button("Back to overview", new Icon(VaadinIcon.ARROW_BACKWARD));
-		button.addClickListener(e -> UI.getCurrent().navigate(PenaltyOverviewView.class));
-		return button;
+	private Div buildToolbar() {
+		var backButton = new Button("Back to overview", new Icon(VaadinIcon.ARROW_BACKWARD));
+		backButton.addClickListener(e -> UI.getCurrent().navigate(PenaltyOverviewView.class));
+
+		var refreshButton = new Button("Refresh data", new Icon(VaadinIcon.REFRESH));
+		refreshButton.addClickListener(e -> refreshData());
+
+		var toolbar = new Div(backButton, refreshButton);
+		toolbar.getStyle()
+				.set("display", "flex")
+				.set("justify-content", "space-between")
+				.set("gap", "var(--lumo-space-s)")
+				.set("margin-bottom", "var(--lumo-space-m)");
+		return toolbar;
+	}
+
+	private void refreshData() {
+		penaltyOverviewCache.invalidate(authSession.getGuildId(), month);
+		renderGuildView();
 	}
 
 	private Grid<MemberPenaltyEntry> buildGrid() {
@@ -123,7 +141,13 @@ public class PenaltyMemberDetailView extends GuildSessionView {
 				.setSortable(true)
 				.setAutoWidth(true);
 
-		List<MemberPenaltyEntry> entries = penaltyOverviewService.memberEntries(authSession.getGuildId(), memberId, DateRange.ofMonth(month));
+		long guildId = authSession.getGuildId();
+		List<MemberPenaltyEntry> entries = penaltyOverviewCache.getMemberEntries(guildId, memberId, month)
+				.orElseGet(() -> {
+					List<MemberPenaltyEntry> fresh = penaltyOverviewService.memberEntries(guildId, memberId, DateRange.ofMonth(month));
+					penaltyOverviewCache.putMemberEntries(guildId, memberId, month, fresh);
+					return fresh;
+				});
 		grid.setItems(entries);
 		grid.sort(List.of(new GridSortOrder<>(timestampColumn, SortDirection.DESCENDING)));
 

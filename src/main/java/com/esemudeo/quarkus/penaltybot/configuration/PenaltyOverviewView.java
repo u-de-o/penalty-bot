@@ -25,10 +25,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Per-guild penalty overview: a sortable table of per-member penalty counts (one column
@@ -53,6 +51,9 @@ public class PenaltyOverviewView extends GuildSessionView {
 	@Inject
 	PenaltyRepository penaltyRepository;
 
+	@Inject
+	PenaltyOverviewCache penaltyOverviewCache;
+
 	private final Grid<MemberRow> grid = new Grid<>();
 	private final Span monthLabel = new Span();
 	private final Button olderButton = new Button("Older", new Icon(VaadinIcon.ANGLE_LEFT));
@@ -62,14 +63,6 @@ public class PenaltyOverviewView extends GuildSessionView {
 	private int currentMonthIndex;
 	private boolean columnsBuilt;
 	private String paypalUsername;
-
-	/**
-	 * Vaadin renders server-side, so there is no browser HTTP cache to lean on here.
-	 * This in-memory cache is the equivalent for this view instance: once a month's data
-	 * has been fetched (DB query + blocking JDA member-name lookups), switching back to
-	 * it is instant instead of re-doing that work.
-	 */
-	private final Map<YearMonth, OverviewTable> monthCache = new HashMap<>();
 
 	@Override
 	protected void renderGuildView() {
@@ -99,6 +92,7 @@ public class PenaltyOverviewView extends GuildSessionView {
 		}
 
 		columnsBuilt = false;
+		content.add(buildToolbar());
 		content.add(buildMonthPager());
 		content.add(grid);
 		loadMonth(indexOfLastCompletedMonth());
@@ -120,6 +114,23 @@ public class PenaltyOverviewView extends GuildSessionView {
 			return 1;
 		}
 		return 0;
+	}
+
+	private Div buildToolbar() {
+		var refreshButton = new Button("Refresh data", new Icon(VaadinIcon.REFRESH));
+		refreshButton.addClickListener(e -> refreshCurrentMonth());
+
+		var toolbar = new Div(refreshButton);
+		toolbar.getStyle()
+				.set("display", "flex")
+				.set("justify-content", "flex-end")
+				.set("margin-bottom", "var(--lumo-space-s)");
+		return toolbar;
+	}
+
+	private void refreshCurrentMonth() {
+		penaltyOverviewCache.invalidate(guildId(), availableMonths.get(currentMonthIndex));
+		loadMonth(currentMonthIndex);
 	}
 
 	private Div buildMonthPager() {
@@ -149,8 +160,12 @@ public class PenaltyOverviewView extends GuildSessionView {
 	private void loadMonth(int monthIndex) {
 		currentMonthIndex = monthIndex;
 		YearMonth month = availableMonths.get(monthIndex);
-		OverviewTable table = monthCache.computeIfAbsent(month,
-				m -> penaltyOverviewService.overview(guildId(), DateRange.ofMonth(m)));
+		OverviewTable table = penaltyOverviewCache.getOverview(guildId(), month)
+				.orElseGet(() -> {
+					OverviewTable fresh = penaltyOverviewService.overview(guildId(), DateRange.ofMonth(month));
+					penaltyOverviewCache.putOverview(guildId(), month, fresh);
+					return fresh;
+				});
 
 		if (!columnsBuilt) {
 			paypalUsername = table.paypalUsername().orElse(null);
