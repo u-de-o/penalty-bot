@@ -2,81 +2,41 @@ package com.esemudeo.quarkus.penaltybot.configuration;
 
 import com.esemudeo.quarkus.penaltybot.configuration.commandpermission.CommandPermissionsCard;
 import com.esemudeo.quarkus.penaltybot.configuration.commandpermission.CommandPermissionsHandler;
-import com.esemudeo.quarkus.penaltybot.configuration.commandpermission.model.CommandPermission;
 import com.esemudeo.quarkus.penaltybot.configuration.global.GlobalSettingsCard;
 import com.esemudeo.quarkus.penaltybot.configuration.global.GlobalSettingsHandler;
-import com.esemudeo.quarkus.penaltybot.configuration.global.model.GlobalGuildConfig;
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.PenaltyTypesCard;
 import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.PenaltyTypesHandler;
-import com.esemudeo.quarkus.penaltybot.configuration.penaltytype.model.PenaltyType;
-import com.vaadin.flow.component.button.Button;
-
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PreserveOnRefresh;
 import com.vaadin.flow.router.Route;
-import jakarta.inject.Inject;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Route("settings")
 @PreserveOnRefresh
-public class SettingsView extends VerticalLayout implements BeforeEnterObserver {
+public class SettingsView extends GuildSessionView {
 
 	private static final String CONTENT_MAX_WIDTH = "1200px";
 	private static final String COLUMN_FLEX_BASIS = "1 1 400px";
-	private static final String LOGIN_PATH = "/login";
-	private static final String LANDING_PATH = "/";
-	private static final String SWITCH_SERVER_LABEL = "Choose another server";
-	private static final String LOGOUT_LABEL = "Log out";
-
-	@Inject
-	AuthSession authSession;
-
-	@Inject
-	SettingsService settingsService;
 
 	private CommandPermissionsCard commandPermissionsCard;
 	private PenaltyTypesCard penaltyTypesCard;
 	private GlobalSettingsCard globalSettingsCard;
 
 	private boolean initialized;
-	private String sessionNonce;
 
 	@Override
-	public void beforeEnter(BeforeEnterEvent event) {
-		if (sessionNonce != null && authSession.isActiveNonce(sessionNonce)) {
-			settingsService.setUiNonce(sessionNonce);
-		} else if (authSession.isNotAuthenticated()) {
-			event.getUI().getPage().setLocation(LOGIN_PATH);
-			return;
-		} else {
-			// Arrived from the guild selection: adopt the current active nonce for this UI.
-			sessionNonce = authSession.getActiveNonce();
-			settingsService.setUiNonce(sessionNonce);
-			initialized = false;
+	protected void renderGuildView() {
+		setPageTitle("Settings of %s".formatted(settingsService.getGuildName()));
+		if (!initialized) {
+			buildSections();
+			initialized = true;
 		}
+		applyInitialState();
+	}
 
-		try {
-			settingsService.assertCanAccessCurrentGuild();
-			if (!initialized) {
-				buildSections();
-				initialized = true;
-			}
-			applyInitialState();
-		} catch (Exception e) {
-			log.warn("Settings view error: {}", e.getMessage());
-			event.forwardTo(ErrorView.class);
-		}
+	@Override
+	protected void onNewSession() {
+		initialized = false;
 	}
 
 	private void buildSections() {
@@ -96,7 +56,7 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 				.set("padding", "var(--lumo-space-m)")
 				.set("box-sizing", "border-box");
 
-		content.add(buildHeader());
+		content.add(buildHeader("Settings of %s".formatted(settingsService.getGuildName())));
 
 		// Load data
 		var commandPermissions = settingsService.getCommands();
@@ -138,57 +98,6 @@ public class SettingsView extends VerticalLayout implements BeforeEnterObserver 
 		content.add(columnsRow);
 
 		add(content);
-	}
-
-	private Div buildHeader() {
-		var header = new Div();
-		header.getStyle().set("margin-bottom", "var(--lumo-space-s)");
-
-		var heading = new H2("Penalty Bot Server Settings");
-		heading.getStyle()
-				.set("margin", "0")
-				.set("font-size", "var(--lumo-font-size-xl)");
-
-		var guildName = new Span(settingsService.getGuildName());
-		guildName.getStyle()
-				.set("font-size", "var(--lumo-font-size-m)")
-				.set("color", "var(--lumo-secondary-text-color)");
-
-		var switchServerButton = new Button(SWITCH_SERVER_LABEL, new Icon(VaadinIcon.EXCHANGE));
-		switchServerButton.addClickListener(e -> UI.getCurrent().navigate(GuildSelectionView.class));
-
-		var logoutButton = new Button(LOGOUT_LABEL, new Icon(VaadinIcon.SIGN_OUT));
-		logoutButton.addClickListener(e -> logout());
-
-		var actions = new Div(switchServerButton, new ThemeToggle(), logoutButton);
-		actions.getStyle()
-				.set("display", "flex")
-				.set("gap", "var(--lumo-space-s)")
-				.set("align-items", "center");
-
-		var topRow = new Div();
-		topRow.getStyle()
-				.set("display", "flex")
-				.set("justify-content", "space-between")
-				.set("align-items", "center")
-				.set("padding-right", "var(--lumo-space-m)");
-
-		var titleBlock = new Div(heading, guildName);
-		topRow.add(titleBlock, actions);
-
-		var welcome = new Paragraph("Hello, %s!".formatted(authSession.getUserName()));
-		welcome.getStyle()
-				.set("margin", "var(--lumo-space-xs) 0 0 0")
-				.set("color", "var(--lumo-secondary-text-color)")
-				.set("font-size", "var(--lumo-font-size-s)");
-
-		header.add(topRow, welcome);
-		return header;
-	}
-
-	private void logout() {
-		UI.getCurrent().getPage().setLocation(LANDING_PATH);
-		authSession.invalidateSession();
 	}
 
 	private void applyInitialState() {

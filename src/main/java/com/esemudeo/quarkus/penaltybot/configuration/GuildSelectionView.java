@@ -196,6 +196,6 @@ public class GuildSelectionView extends VerticalLayout implements BeforeEnterObs
 		}
 		authSession.setGuildId(guildId);
 		authSession.rotateNonce();
-		UI.getCurrent().navigate(SettingsView.class);
+		UI.getCurrent().navigate(GuildHomeView.class);
 	}
 }
