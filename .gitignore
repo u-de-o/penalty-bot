@@ -23,6 +23,9 @@ release.properties
 # Local environment
 .env
 
+# Local dev-only scripts (may contain real Discord user data, never commit)
+/scripts/
+
 # Claude
 CLAUDE.md
 
