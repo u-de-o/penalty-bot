@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.esemudeo.quarkus</groupId>
     <artifactId>penalty-bot</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9-SNAPSHOT</version>
     <packaging>quarkus</packaging>
 
     <licenses>
@@ -18,7 +18,7 @@
         <connection>scm:git:git@github.com:u-de-o/penalty-bot.git</connection>
         <developerConnection>scm:git:git@github.com:u-de-o/penalty-bot.git</developerConnection>
         <url>https://github.com/u-de-o/penalty-bot</url>
-        <tag>1.0.8</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
