@@ -5,7 +5,9 @@ import com.esemudeo.quarkus.penaltybot.penalty.PenaltyOverviewService;
 import com.esemudeo.quarkus.penaltybot.penalty.PenaltyOverviewService.MemberRow;
 import com.esemudeo.quarkus.penaltybot.penalty.PenaltyOverviewService.OverviewTable;
 import com.esemudeo.quarkus.penaltybot.penalty.repository.PenaltyRepository;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.GridSortOrder;
 import com.vaadin.flow.component.html.Anchor;
@@ -18,6 +20,8 @@ import com.vaadin.flow.data.provider.SortDirection;
 import com.vaadin.flow.router.Route;
 import jakarta.inject.Inject;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.Comparator;
@@ -150,7 +154,7 @@ public class PenaltyOverviewView extends GuildSessionView {
 	}
 
 	private void buildColumns(List<String> typeColumns) {
-		grid.addColumn(MemberRow::displayName)
+		grid.addComponentColumn(this::buildMemberLink)
 				.setHeader("Member")
 				.setComparator(Comparator.comparing(MemberRow::displayName, String.CASE_INSENSITIVE_ORDER))
 				.setSortable(true)
@@ -173,6 +177,21 @@ public class PenaltyOverviewView extends GuildSessionView {
 		}
 
 		grid.sort(List.of(new GridSortOrder<>(amountColumn, SortDirection.DESCENDING)));
+	}
+
+	private Button buildMemberLink(MemberRow row) {
+		var button = new Button(row.displayName());
+		button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+		button.getStyle().set("padding", "0");
+		button.addClickListener(e -> navigateToMemberDetail(row));
+		return button;
+	}
+
+	private void navigateToMemberDetail(MemberRow row) {
+		YearMonth month = availableMonths.get(currentMonthIndex);
+		String url = "member-penalties?memberId=%d&month=%s&memberName=%s".formatted(
+				row.memberId(), month, URLEncoder.encode(row.displayName(), StandardCharsets.UTF_8));
+		UI.getCurrent().navigate(url);
 	}
 
 	private String formatAmount(MemberRow row) {
