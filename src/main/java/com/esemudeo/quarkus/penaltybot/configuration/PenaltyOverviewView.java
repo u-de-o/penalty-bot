@@ -25,8 +25,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Per-guild penalty overview: a sortable table of per-member penalty counts (one column
@@ -60,6 +62,14 @@ public class PenaltyOverviewView extends GuildSessionView {
 	private int currentMonthIndex;
 	private boolean columnsBuilt;
 	private String paypalUsername;
+
+	/**
+	 * Vaadin renders server-side, so there is no browser HTTP cache to lean on here.
+	 * This in-memory cache is the equivalent for this view instance: once a month's data
+	 * has been fetched (DB query + blocking JDA member-name lookups), switching back to
+	 * it is instant instead of re-doing that work.
+	 */
+	private final Map<YearMonth, OverviewTable> monthCache = new HashMap<>();
 
 	@Override
 	protected void renderGuildView() {
@@ -139,7 +149,8 @@ public class PenaltyOverviewView extends GuildSessionView {
 	private void loadMonth(int monthIndex) {
 		currentMonthIndex = monthIndex;
 		YearMonth month = availableMonths.get(monthIndex);
-		OverviewTable table = penaltyOverviewService.overview(guildId(), DateRange.ofMonth(month));
+		OverviewTable table = monthCache.computeIfAbsent(month,
+				m -> penaltyOverviewService.overview(guildId(), DateRange.ofMonth(m)));
 
 		if (!columnsBuilt) {
 			paypalUsername = table.paypalUsername().orElse(null);
