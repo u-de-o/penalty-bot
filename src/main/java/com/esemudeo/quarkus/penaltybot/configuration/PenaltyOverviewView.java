@@ -84,17 +84,28 @@ public class PenaltyOverviewView extends GuildSessionView {
 			return;
 		}
 
-		currentMonthIndex = 0;
 		columnsBuilt = false;
 		content.add(buildMonthPager());
 		content.add(grid);
-		loadMonth(currentMonthIndex);
+		loadMonth(indexOfLastCompletedMonth());
 
 		add(content);
 	}
 
 	private long guildId() {
 		return authSession.getGuildId();
+	}
+
+	/**
+	 * Skips the current, still-ongoing month if it happens to be the newest entry in
+	 * {@link #availableMonths} (index 0, since the list is sorted newest first), so the
+	 * default view is always the last fully completed month.
+	 */
+	private int indexOfLastCompletedMonth() {
+		if (availableMonths.size() > 1 && availableMonths.getFirst().equals(YearMonth.now())) {
+			return 1;
+		}
+		return 0;
 	}
 
 	private Div buildMonthPager() {
