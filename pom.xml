@@ -15,9 +15,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git@github.com:Esemudeo/penalty-bot.git</connection>
-        <developerConnection>scm:git:git@github.com:Esemudeo/penalty-bot.git</developerConnection>
-        <url>https://github.com/Esemudeo/penalty-bot</url>
+        <connection>scm:git:git@github.com:u-de-o/penalty-bot.git</connection>
+        <developerConnection>scm:git:git@github.com:u-de-o/penalty-bot.git</developerConnection>
+        <url>https://github.com/u-de-o/penalty-bot</url>
         <tag>HEAD</tag>
     </scm>
 

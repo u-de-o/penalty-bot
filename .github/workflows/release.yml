@@ -40,8 +40,8 @@ jobs:
           file: src/main/docker/Dockerfile.jvm
           push: true
           tags: |
-            ghcr.io/esemudeo/penalty-bot:${{ github.ref_name }}
-            ghcr.io/esemudeo/penalty-bot:latest
+            ghcr.io/u-de-o/penalty-bot:${{ github.ref_name }}
+            ghcr.io/u-de-o/penalty-bot:latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -1,6 +1,6 @@
 services:
   penalty-bot:
-    image: ghcr.io/esemudeo/penalty-bot:latest
+    image: ghcr.io/u-de-o/penalty-bot:latest
     env_file: .env
     environment:
       DB_JDBC_URL: ${DB_JDBC_URL:-jdbc:postgresql://db:5432/penalty-bot}
