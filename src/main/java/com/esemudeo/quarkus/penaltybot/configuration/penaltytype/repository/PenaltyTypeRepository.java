@@ -14,12 +14,17 @@ public class PenaltyTypeRepository {
 
     /** Only active, non-deleted types – used by the bot when presenting options to users. */
     public List<PenaltyType> findActiveByGuild(long guildId) {
-        return PenaltyType.find("guildId = ?1 and active = true and deleted = false", guildId).list();
+        return PenaltyType.find("guildId = ?1 and active = true and deleted = false order by id", guildId).list();
     }
 
-    /** Active and inactive types, excluding deleted – used by the settings UI. */
+    /**
+     * Active and inactive types, excluding deleted – used by the settings UI. Ordered by
+     * id (creation/entry date order) so the list stays stable across saves. Without an
+     * explicit order, Postgres row order is undefined and can visibly shuffle after the
+     * UPDATEs a save performs (e.g. unsetDefaultForGuild touches every row).
+     */
     public List<PenaltyType> findAllByGuild(long guildId) {
-        return PenaltyType.find("guildId = ?1 and deleted = false", guildId).list();
+        return PenaltyType.find("guildId = ?1 and deleted = false order by id", guildId).list();
     }
 
     /** Internal lookup by technical name (UUID), used when saving a penalty. */
