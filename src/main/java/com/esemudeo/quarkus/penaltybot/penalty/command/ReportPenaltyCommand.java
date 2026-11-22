@@ -31,6 +31,8 @@ public class ReportPenaltyCommand implements SlashCommand, UserContextMenuComman
 	public static final String FIELD_MEMBER = "modal-member";
 	public static final String FIELD_AMOUNT = "modal-amount";
 	public static final String FIELD_REASON = "modal-reason";
+	public static final String FIELD_COMMENT = "modal-comment";
+	public static final int MAX_COMMENT_LENGTH = 500;
 
 	@Inject
 	PenaltyTypeRepository penaltyTypeRepository;
@@ -93,11 +95,18 @@ public class ReportPenaltyCommand implements SlashCommand, UserContextMenuComman
 
 		StringSelectMenu reasonSelect = reasonSelectBuilder.build();
 
+		TextInput commentInput = TextInput.create(FIELD_COMMENT, TextInputStyle.PARAGRAPH)
+				.setPlaceholder("Optional – required when the amount is negative")
+				.setMaxLength(MAX_COMMENT_LENGTH)
+				.setRequired(false)
+				.build();
+
 		Modal modal = Modal.create(MODAL_ID_PREFIX + UUID.randomUUID(), "Report Penalty")
 				.addComponents(
 						Label.of("Affected Member", memberSelect),
 						Label.of("Amount", amountInput),
-						Label.of("Reason", reasonSelect))
+						Label.of("Reason", reasonSelect),
+						Label.of("Comment (required for negative amounts)", commentInput))
 				.build();
 
 		callback.replyModal(modal).queue();

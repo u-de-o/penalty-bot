@@ -24,7 +24,26 @@ public class PenaltyRepository {
 	@Inject
 	PenaltyTypeRepository penaltyTypeRepository;
 
+	/** Books a regular (positive) penalty. */
 	public Optional<Penalty> save(Penalty penalty, String penaltyTypeName) {
+		return persist(penalty, penaltyTypeName);
+	}
+
+	/**
+	 * Books a correction: an additional negative entry with a mandatory comment. Nothing is ever changed or
+	 * deleted, so the history stays complete and sums are corrected by the negative amount.
+	 */
+	public Optional<Penalty> saveCorrection(Penalty penalty, String penaltyTypeName) {
+		if (penalty.getAmount() == null || penalty.getAmount() >= 0) {
+			throw new IllegalArgumentException("A correction needs a negative amount");
+		}
+		if (penalty.getComment() == null || penalty.getComment().isBlank()) {
+			throw new IllegalArgumentException("A correction needs a comment");
+		}
+		return persist(penalty, penaltyTypeName);
+	}
+
+	private Optional<Penalty> persist(Penalty penalty, String penaltyTypeName) {
 		Optional<PenaltyType> penaltyType = penaltyTypeRepository.findByGuildAndTechnicalName(penalty.getGuildId(), penaltyTypeName);
 		if (penaltyType.isEmpty()) {
 			return Optional.empty();

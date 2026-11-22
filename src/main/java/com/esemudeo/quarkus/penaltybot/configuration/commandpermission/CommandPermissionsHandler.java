@@ -22,7 +22,8 @@ public class CommandPermissionsHandler {
 			"penalty", 0,
 			"penalty-show", 1,
 			"penalty-summary", 2,
-			"penalty-setup", 3
+			"penalty-remove", 3,
+			"penalty-setup", 4
 	);
 
 	private final SettingsService settingsService;

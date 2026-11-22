@@ -55,7 +55,9 @@ public class CommandPermissionsCard extends SettingsCard {
 			"A member can use a command if they match either the minimum role or any explicit role. " +
 			"The server owner and members with the Administrator permission always have access to all commands. " +
 			"Note: The role configured for the /penalty command also determines which members can be reported — " +
-			"only members who match the penalty permission can be selected as a target.";
+			"only members who match the penalty permission can be selected as a target. " +
+			"The penalty-remove permission is not a command: it decides who may book negative amounts " +
+			"(corrections, with a mandatory comment) via /penalty.";
 
 	private void buildContent() {
 		add(buildPermissionsHelpIcon());

@@ -91,7 +91,7 @@ The bot connects to Discord immediately. The Quarkus Dev UI is available at `htt
 
 | Command            | Description                                                                                  |
 |--------------------|----------------------------------------------------------------------------------------------|
-| `/penalty`         | Report a penalty for a guild member (also available via user context menu)                   |
+| `/penalty`         | Report a penalty for a guild member (also available via user context menu). Negative amounts are corrections: they need a comment and the `penalty-remove` role from the setup panel (default: owner/admins). Nothing is ever deleted. |
 | `/penalty-show`    | View penalties for a specific member in a given month (also available via user context menu) |
 | `/penalty-summary` | View aggregated penalty summary for all members in a given month                             |
 | `/penalty-setup`   | Generate a secure, time-limited link to the web admin panel                                  |

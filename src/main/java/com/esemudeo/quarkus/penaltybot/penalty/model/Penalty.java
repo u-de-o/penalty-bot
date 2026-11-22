@@ -35,4 +35,7 @@ public class Penalty extends PanacheEntity {
 	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "penalty_type_pkid", nullable = false)
 	private PenaltyType penaltyType;
+	/** Optional for regular penalties, mandatory for negative entries (corrections). */
+	@Column(name = "comment")
+	private String comment;
 }
